@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="process" trace="disable" onError="onErrorSequence" xmlns="http://ws.apache.org/ns/synapse">
+
+    <!-- <script language="js"><![CDATA[throw new Error("This is the reason why the processing has failed.");]]></script> -->
+    <sequence key="getInfobipConfigs" />
+
+    <filter xpath="get-property('placeholders') and not(get-property('buttons'))">
+        <then>
+            <log level="custom">
+                <property name="INFO" value="Condition: With placeholders without buttons1" />
+            </log>
+            <payloadFactory media-type="json">
+                <format>
+                    {
+                        "messages": [
+                            {
+                                "from": "$1",
+                                "to": "$2",
+                                "messageId": "$3",
+                                "content": {
+                                    "templateName": "$4",
+                                    "templateData": {
+                                        "body": {
+                                            "placeholders": $5
+                                        }
+                                    },
+                                    "language": "$6"
+                                },
+                                "notifyUrl": "$7"
+                            }
+                        ]
+                    }
+                </format>
+                <args>
+                    <arg evaluator="xml" expression="get-property('from')" />
+                    <arg evaluator="xml" expression="get-property('to')" />
+                    <arg evaluator="xml" expression="get-property('messageId')" />
+                    <arg evaluator="xml" expression="get-property('templateName')" />
+                    <arg evaluator="xml" expression="get-property('placeholders')" />
+                    <arg evaluator="xml" expression="get-property('language')" />
+                    <arg evaluator="xml" expression="get-property('notifyUrl')" />
+                </args>
+            </payloadFactory>
+        </then>
+        <else>
+            <filter xpath="get-property('placeholders') and get-property('buttons')">
+                <then>
+                    <log level="custom">
+                        <property name="INFO" value="Condition: With placeholders with buttons2" />
+                    </log>
+                    <payloadFactory media-type="json">
+                        <format>
+                            {
+                                "messages": [
+                                    {
+                                        "from": "$1",
+                                        "to": "$2",
+                                        "messageId": "$3",
+                                        "content": {
+                                            "templateName": "$4",
+                                            "templateData": {
+                                                "body": {
+                                                    "placeholders": $5
+                                                },
+                                                "buttons": $6
+                                            },
+                                            "language": "$7"
+                                        },
+                                        "notifyUrl": "$8"
+                                    }
+                                ]
+                            }
+                        </format>
+                        <args>
+                            <arg evaluator="xml" expression="get-property('from')" />
+                            <arg evaluator="xml" expression="get-property('to')" />
+                            <arg evaluator="xml" expression="get-property('messageId')" />
+                            <arg evaluator="xml" expression="get-property('templateName')" />
+                            <arg evaluator="xml" expression="get-property('placeholders')" />
+                            <arg evaluator="xml" expression="get-property('buttons')" />
+                            <arg evaluator="xml" expression="get-property('language')" />
+                            <arg evaluator="xml" expression="get-property('notifyUrl')" />
+                        </args>
+                    </payloadFactory>
+                </then>
+                <else>
+                    <filter xpath="not(get-property('placeholders')) and get-property('buttons')">
+                        <then>
+                            <log level="custom">
+                                <property name="INFO" value="Condition: Else - Without placeholders with buttons3" />
+                            </log>
+                            <payloadFactory media-type="json">
+                                <format>
+                                    {
+                                        "messages": [
+                                            {
+                                                "from": "$1",
+                                                "to": "$2",
+                                                "messageId": "$3",
+                                                "content": {
+                                                    "templateName": "$4",
+                                                    "templateData": {
+                                                        "body": {
+                                                            "placeholders": [],
+                                                            "buttons": $5
+                                                        }
+                                                    },
+                                                    "language": "$6"
+                                                },
+                                                "notifyUrl": "$7"
+                                            }
+                                        ]
+                                    }
+                                </format>
+                                <args>
+                                    <arg evaluator="xml" expression="get-property('from')" />
+                                    <arg evaluator="xml" expression="get-property('to')" />
+                                    <arg evaluator="xml" expression="get-property('messageId')" />
+                                    <arg evaluator="xml" expression="get-property('templateName')" />
+                                    <arg evaluator="xml" expression="get-property('buttons')" />
+                                    <arg evaluator="xml" expression="get-property('language')" />
+                                    <arg evaluator="xml" expression="get-property('notifyUrl')" />
+                                </args>
+                            </payloadFactory>
+                        </then>
+                        <else>
+                            <log level="custom">
+                                <property name="INFO" value="Condition: Else - Without placeholders Without buttons4" />
+                            </log>
+                            <payloadFactory media-type="json">
+                                <format>
+                                    {
+                                        "messages": [
+                                            {
+                                                "from": "$1",
+                                                "to": "$2",
+                                                "messageId": "$3",
+                                                "content": {
+                                                    "templateName": "$4",
+                                                    "templateData": {
+                                                        "body": {
+                                                            "placeholders": []
+                                                        }
+                                                    },
+                                                    "language": "$5"
+                                                },
+                                                "notifyUrl": "$6"
+                                            }
+                                        ]
+                                    }
+                                </format>
+                                <args>
+                                    <arg evaluator="xml" expression="get-property('from')" />
+                                    <arg evaluator="xml" expression="get-property('to')" />
+                                    <arg evaluator="xml" expression="get-property('messageId')" />
+                                    <arg evaluator="xml" expression="get-property('templateName')" />
+                                    <arg evaluator="xml" expression="get-property('language')" />
+                                    <arg evaluator="xml" expression="get-property('notifyUrl')" />
+                                </args>
+                            </payloadFactory>
+                        </else>
+                    </filter>
+                </else>
+            </filter>
+        </else>
+    </filter>
+    <header name="Authorization" action="set" scope="transport" expression="get-property('apiKey')" />
+    <call>
+        <endpoint>
+            <address uri="${infobipUrl}" />
+        </endpoint>
+    </call>
+    <property name="infobipResponse"  expression="json-eval($.)" />
+    <property name="integrationNo" scope="transport" type="STRING" value="I1125" />
+    <property name="type" scope="transport" type="STRING" value="Response Body" />
+    <call>
+        <endpoint key="LogAPI" />
+    </call>
+    <property name="SC_ACCEPTED" value="false" scope="axis2"/>
+    <property name="HTTP_SC" value="200" scope="axis2"/>
+    <payloadFactory media-type="json">
+        <format>$1</format>
+        <args>
+            <arg expression="get-property('infobipResponse')"></arg>
+        </args>
+    </payloadFactory>
+    <respond />
+
+</sequence>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="onErrorSequence" trace="disable" xmlns="http://ws.apache.org/ns/synapse">
+    <log description="Log failure details" level="custom">
+        <property name="message" value="Processing failed"/>
+        <property name="error_message" expression="$ctx:ERROR_MESSAGE"/>
+    </log>
+    
+    <property description="Increment retry count" expression="get-property('RETRY_COUNT') + 1" name="RETRY_COUNT" scope="default" type="STRING"/>
+    
+    <log description="Log current retry attempt" level="custom">
+        <property expression="get-property('RETRY_COUNT')" name="retry_attempt"/>
+    </log>
+    
+    <filter description="Check retry limit" regex="3.0" source="get-property('RETRY_COUNT')">
+        <then>
+            <property name="exception" scope="transport" type="STRING" expression="get-property('ERROR_MESSAGE')" />
+            <property name="errorCode" scope="transport" type="STRING" expression="get-property('ERROR_CODE')" />
+            <property name="integrationNo" scope="transport" type="STRING" value="I1125" />
+            <call>
+                <endpoint key="LogAPI" />
+            </call>
+            <property description="Set HTTP status to 500" name="HTTP_SC" scope="axis2" type="STRING" value="500"/>
+            <payloadFactory description="Create error response payload" media-type="json">
+                <format>
+                    {
+                        "Error": {
+                            "message": "Processing failed.",
+                            "reason": "$1"
+                        }
+                    }
+                </format>
+                <args>
+                    <arg expression="$ctx:ERROR_MESSAGE"/>
+                </args>
+            </payloadFactory>
+            <respond description="Send error response"/>
+        </then>
+        <else>
+            <script description="Delay 5sec" language="js"><![CDATA[java.lang.Thread.sleep(5000);]]></script>
+            <sequence key="process"/>
+        </else>
+    </filter>
+</sequence>
